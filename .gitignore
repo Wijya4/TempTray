@@ -1,0 +1,10 @@
+# hasil build dan unduhan pustaka
+build/
+deps/
+
+# berkas sementara
+*.user
+*.suo
+.vs/
+Thumbs.db
+desktop.ini
