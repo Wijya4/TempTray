@@ -46,6 +46,46 @@ To remove everything:
 powershell -ExecutionPolicy Bypass -File .\uninstall.ps1
 ```
 
+## Watchdog so the icon does not disappear
+
+There are two guards. Both are installed once from PowerShell with administrator rights.
+
+**1. Auto-restart on the autostart task.** If the process stops, Task Scheduler starts it
+again up to three times, one minute apart.
+
+```powershell
+$s = (Get-ScheduledTask -TaskName 'TempTrayAutostart').Settings
+$s.RestartCount = 3
+$s.RestartInterval = 'PT1M'
+Set-ScheduledTask -TaskName 'TempTrayAutostart' -Settings $s
+```
+
+**2. Watchdog every five minutes.** `watchdog.ps1` checks the process; if it is missing,
+it runs the autostart task and writes one line to `watchdog.log`.
+
+```powershell
+$wd = Join-Path $env:LOCALAPPDATA 'Programs\TempTray\watchdog.ps1'
+Copy-Item .\watchdog.ps1 $wd -Force
+schtasks /create /tn TempTrayWatchdog /tr "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$wd`"" /sc minute /mo 5 /rl highest /f
+```
+
+Important: tasks created with `schtasks` do not run on battery by default. Turn that
+condition off, otherwise the watchdog stays silent.
+
+```powershell
+$s = (Get-ScheduledTask -TaskName 'TempTrayWatchdog').Settings
+$s.DisallowStartIfOnBatteries = $false
+$s.StopIfGoingOnBatteries = $false
+$s.ExecutionTimeLimit = 'PT0S'
+Set-ScheduledTask -TaskName 'TempTrayWatchdog' -Settings $s
+```
+
+To remove the guards:
+
+```powershell
+schtasks /delete /tn TempTrayWatchdog /f
+```
+
 ## Advantages
 
 - **Light.** `TempTray.exe` is about 15 KB, the whole folder with its libraries is about 3 MB, memory use is roughly 45 to 57 MB, and CPU load is about 0.7 percent of a single core.
