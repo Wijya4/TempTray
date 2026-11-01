@@ -61,12 +61,15 @@ Set-ScheduledTask -TaskName 'TempTrayAutostart' -Settings $s
 ```
 
 **2. Watchdog every five minutes.** `watchdog.ps1` checks the process; if it is missing,
-it runs the autostart task and writes one line to `watchdog.log`.
+it runs the autostart task and writes one line to `watchdog.log`. It is started through
+`watchdog.vbs`, because `wscript.exe` has no console, so no window flashes on screen.
 
 ```powershell
-$wd = Join-Path $env:LOCALAPPDATA 'Programs\TempTray\watchdog.ps1'
-Copy-Item .\watchdog.ps1 $wd -Force
-schtasks /create /tn TempTrayWatchdog /tr "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$wd`"" /sc minute /mo 5 /rl highest /f
+$dir = Join-Path $env:LOCALAPPDATA 'Programs\TempTray'
+Copy-Item .\watchdog.ps1 $dir -Force
+Copy-Item .\watchdog.vbs $dir -Force
+$vbs = Join-Path $dir 'watchdog.vbs'
+schtasks /create /tn TempTrayWatchdog /tr "wscript.exe //nologo `"$vbs`"" /sc minute /mo 5 /rl highest /f
 ```
 
 Important: tasks created with `schtasks` do not run on battery by default. Turn that
