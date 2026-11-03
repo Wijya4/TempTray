@@ -74,6 +74,11 @@ class TempTrayApp : Form
         WindowState = FormWindowState.Minimized;
         Opacity = 0;
         FormBorderStyle = FormBorderStyle.None;
+        // jendela ini hanya rumah bagi NotifyIcon: jangan pernah muncul di Alt+Tab
+        ShowIcon = false;
+        Size = new Size(1, 1);
+        StartPosition = FormStartPosition.Manual;
+        Location = new Point(-32000, -32000);
         Load += delegate { BeginInit(); };
 
         BuildMenu();
@@ -385,6 +390,16 @@ class TempTrayApp : Form
             File.AppendAllText(logPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + msg + Environment.NewLine);
         }
         catch { }
+    }
+
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            CreateParams cp = base.CreateParams;
+            cp.ExStyle |= 0x00000080; // WS_EX_TOOLWINDOW: sembunyikan dari Alt+Tab
+            return cp;
+        }
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
