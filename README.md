@@ -46,12 +46,10 @@ To remove everything:
 powershell -ExecutionPolicy Bypass -File .\uninstall.ps1
 ```
 
-## Watchdog so the icon does not disappear
+## If the icon disappears
 
-There are two guards. Both are installed once from PowerShell with administrator rights.
-
-**1. Auto-restart on the autostart task.** If the process stops, Task Scheduler starts it
-again up to three times, one minute apart.
+Windows can stop the process without saying anything. To let Task Scheduler start it again
+after a crash, run this once in an elevated PowerShell:
 
 ```powershell
 $s = (Get-ScheduledTask -TaskName 'TempTrayAutostart').Settings
@@ -60,34 +58,8 @@ $s.RestartInterval = 'PT1M'
 Set-ScheduledTask -TaskName 'TempTrayAutostart' -Settings $s
 ```
 
-**2. Watchdog every five minutes.** `watchdog.ps1` checks the process; if it is missing,
-it runs the autostart task and writes one line to `watchdog.log`. It is started through
-`watchdog.vbs`, because `wscript.exe` has no console, so no window flashes on screen.
-
-```powershell
-$dir = Join-Path $env:LOCALAPPDATA 'Programs\TempTray'
-Copy-Item .\watchdog.ps1 $dir -Force
-Copy-Item .\watchdog.vbs $dir -Force
-$vbs = Join-Path $dir 'watchdog.vbs'
-schtasks /create /tn TempTrayWatchdog /tr "wscript.exe //nologo `"$vbs`"" /sc minute /mo 5 /rl highest /f
-```
-
-Important: tasks created with `schtasks` do not run on battery by default. Turn that
-condition off, otherwise the watchdog stays silent.
-
-```powershell
-$s = (Get-ScheduledTask -TaskName 'TempTrayWatchdog').Settings
-$s.DisallowStartIfOnBatteries = $false
-$s.StopIfGoingOnBatteries = $false
-$s.ExecutionTimeLimit = 'PT0S'
-Set-ScheduledTask -TaskName 'TempTrayWatchdog' -Settings $s
-```
-
-To remove the guards:
-
-```powershell
-schtasks /delete /tn TempTrayWatchdog /f
-```
+There is no separate watchdog script any more: an extra loop that polls the process costs
+more CPU than the tool itself saves.
 
 ## Advantages
 
